@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Category Word Frequency Visualization</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        svg {
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+        }
+        .node circle {
+            stroke: #fff;
+            stroke-width: 1.5px;
+        }
+        .node text {
+            font-size: 12px;
+            pointer-events: none;
+            fill: #ffffff;
+        }
+        .link {
+            stroke: #999;
+            stroke-opacity: 0.6;
+        }
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            padding: 8px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            pointer-events: none;
+            visibility: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Bar Chart Styles */
+        .bar {
+            fill: steelblue;
+        }
+
+        /* Bigger Text for Bar Chart */
+        .x-axis text {
+            font-size: 16px;  /* Increased font size for x-axis labels */
+        }
+
+        .y-axis text {
+            font-size: 16px;  /* Increased font size for y-axis labels */
+        }
+
+        .bar-label {
+            font-size: 16px; /* Increased font size for the text inside the bars */
+            fill: white;
+            text-anchor: middle;
+        }
+
+        /* Cluster visualization styles */
+        .cluster-circle {
+            fill: #1f77b4;
+        }
+
+        .word-circle {
+            fill: #ff7f0e;
+        }
+
+        .cluster-text {
+            font-size: 16px;
+            fill: white;
+        }
+
+        .word-text {
+            font-size: 12px;
+            fill: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Category Word Frequency Visualization</h1>
+    <svg width="1260" height="800"></svg>
+    <div class="tooltip" id="tooltip"></div>
+
+    <h2>Top Words Visualization</h2>
+    <svg id="bar-chart" width="1260" height="400"></svg>
+
+    <h2>Word Clustering Visualization</h2>
+    <svg id="cluster-chart" width="1260" height="400"></svg>
+
+    <script>
+        const width = 1260;
+        const height = 800;
+
+        // Load the CSV file for category word frequencies visualization
+        d3.csv("../category_word_frequencies.csv").then(data => {
+            // Process the data into nodes and links
+            const nodes = [];
+            const links = [];
+            const nodeSet = new Set();
+
+            data.forEach(d => {
+                const category = d.Category;
+                const word = d.Word;
+                const count = +d.Count;
+
+                if (!nodeSet.has(category)) {
+                    nodes.push({ id: category, type: "category" });
+                    nodeSet.add(category);
+                }
+
+                if (!nodeSet.has(word)) {
+                    nodes.push({ id: word, type: "word", size: count });
+                    nodeSet.add(word);
+                }
+
+                links.push({ source: category, target: word, value: count });
+            });
+
+            // Create SVG and tooltip for category-word frequency graph
+            const svg = d3.select("svg")
+                .attr("viewBox", [0, 0, width, height]);
+
+            const tooltip = d3.select("#tooltip");
+
+            // Simulation with forces
+            const simulation = d3.forceSimulation(nodes)
+                .force("link", d3.forceLink(links).id(d => d.id).distance(120))
+                .force("charge", d3.forceManyBody().strength(-300))
+                .force("center", d3.forceCenter(width / 2, height / 2));
+
+            // Draw links
+            const link = svg.append("g")
+                .attr("stroke", "#999")
+                .attr("stroke-opacity", 0.6)
+                .selectAll("line")
+                .data(links)
+                .join("line")
+                .attr("stroke-width", d => Math.sqrt(d.value));
+
+            // Draw nodes
+            const node = svg.append("g")
+                .attr("stroke", "#fff")
+                .attr("stroke-width", 1.5)
+                .selectAll("g")
+                .data(nodes)
+                .join("g")
+                .call(drag(simulation));
+
+            node.append("circle")
+                .attr("r", d => d.type === "category" ? 20 : Math.max(d.size * 1.5, 8))
+                .attr("fill", d => d.type === "category" ? "#1f77b4" : "#ff7f0e")
+                .on("mouseover", (event, d) => {
+                    tooltip.style("visibility", "visible")
+                        .text(`${d.id} (${d.type === "word" ? "Count: " + d.size : "Category"})`);
+                })
+                .on("mousemove", event => {
+                    tooltip.style("top", (event.pageY - 10) + "px")
+                        .style("left", (event.pageX + 10) + "px");
+                })
+                .on("mouseout", () => tooltip.style("visibility", "hidden"));
+
+            node.append("text")
+                .attr("x", 12)
+                .attr("y", 3)
+                .text(d => d.id)
+                .attr("font-size", d => d.type === "category" ? "36px" : "22px")
+                .attr("stroke", "#000000")
+                .attr("fill", "#000000");
+
+            simulation.on("tick", () => {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+
+                node.attr("transform", d => `translate(${d.x},${d.y})`);
+            });
+
+            // Drag behavior
+            function drag(simulation) {
+                function dragstarted(event, d) {
+                    if (!event.active) simulation.alphaTarget(0.3).restart();
+                    d.fx = d.x;
+                    d.fy = d.y;
+                }
+
+                function dragged(event, d) {
+                    d.fx = event.x;
+                    d.fy = event.y;
+                }
+
+                function dragended(event, d) {
+                    if (!event.active) simulation.alphaTarget(0);
+                    d.fx = null;
+                    d.fy = null;
+                }
+
+                return d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended);
+            }
+        }).catch(error => console.error("Error loading CSV file:", error));
+
+        // Load top words CSV for bar chart visualization
+        d3.csv("../top_1000_words.csv").then(data => {
+            // Set up the margin and dimensions for the bar chart
+            const margin = { top: 20, right: 30, bottom: 60, left: 60 };
+            const barWidth = 1260 - margin.left - margin.right;
+            const barHeight = 400 - margin.top - margin.bottom;
+
+            // Create the SVG element for the bar chart
+            const svgBar = d3.select("#bar-chart")
+                .attr("width", barWidth + margin.left + margin.right)
+                .attr("height", barHeight + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            // Prepare the data: Sort by count in descending order and take the top 20
+            data.sort((a, b) => b.Count - a.Count);
+            data = data.slice(0, 20);
+
+            // Set up the x and y scales for the bar chart
+            const x = d3.scaleBand()
+                .domain(data.map(d => d.Word))
+                .range([0, barWidth])
+                .padding(0.1);
+
+            const y = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.Count)])
+                .nice()
+                .range([barHeight, 0]);
+
+            // Add the bars
+            svgBar.selectAll(".bar")
+                .data(data)
+                .join("rect")
+                .attr("class", "bar")
+                .attr("x", d => x(d.Word))
+                .attr("y", d => y(d.Count))
+                .attr("width", x.bandwidth())
+                .attr("height", d => barHeight - y(d.Count));
+
+            // Add the x-axis
+            svgBar.append("g")
+                .attr("transform", "translate(0," + barHeight + ")")
+                .call(d3.axisBottom(x).tickSize(0));
+
+            // Add the y-axis
+            svgBar.append("g")
+                .call(d3.axisLeft(y).ticks(5));
+
+            // Add labels inside the bars
+            svgBar.selectAll(".bar-label")
+                .data(data)
+                .join("text")
+                .attr("class", "bar-label")
+                .attr("x", d => x(d.Word) + x.bandwidth() / 2)
+                .attr("y", d => y(d.Count) + 20) // Adjust the vertical position
+                .text(d => d.Count);
+        }).catch(error => console.error("Error loading CSV file:", error));
+
+        // Load the word clustering CSV for cluster visualization
+
+
+
+
+
+
+        
+        // Load the word clustering CSV for cluster visualization
+        d3.csv("../word_clustering.csv").then(data => {
+            const clusterData = [];
+            const wordData = [];
+            const links = [];
+
+            // Process the data into clusters and words
+            data.forEach(d => {
+                const cluster = d.Cluster;
+                const word = d.Word;
+
+                // Add cluster if not already present
+                if (!clusterData.some(c => c.id === cluster)) {
+                    clusterData.push({ id: cluster });
+                }
+
+                // Add word if not already present
+                if (!wordData.some(w => w.id === word)) {
+                    wordData.push({ id: word });
+                }
+
+                // Create a link between the cluster and the word
+                links.push({ source: cluster, target: word });
+            });
+
+            const svgCluster = d3.select("#cluster-chart")
+                .attr("width", width)
+                .attr("height", 800);
+
+            const tooltip = d3.select("#tooltip"); // Tooltip div for mouse hover
+
+            // Simulation with forces
+            const simulationCluster = d3.forceSimulation(wordData.concat(clusterData))
+                .force("link", d3.forceLink(links).id(d => d.id).distance(40)) // Reduced distance for tighter nodes
+                .force("charge", d3.forceManyBody().strength(-200))  // Slightly stronger repulsion
+                .force("center", d3.forceCenter(width / 2, height / 2))  // Centering the simulation both horizontally and vertically
+                .force("collide", d3.forceCollide(30)) // Preventing overlap between nodes
+
+            // Draw links
+            const link = svgCluster.append("g")
+                .attr("stroke", "#999")
+                .attr("stroke-opacity", 0.6)
+                .selectAll("line")
+                .data(links)
+                .join("line")
+                .attr("stroke-width", 2);
+
+            // Draw nodes
+            const node = svgCluster.append("g")
+                .selectAll("g")
+                .data(wordData.concat(clusterData))
+                .join("g")
+                .call(drag(simulationCluster));
+
+            // Set larger circle for all clusters
+            const clusters = ["AI", "Cybersecurity", "Business Analysis", "Software Development", "Design"]; // List of cluster names
+
+            // Increase the circle size for both cluster and word nodes
+            node.append("circle")
+                .attr("r", d => clusters.includes(d.id) ? 30 : 20) // Larger circle for cluster nodes
+                .attr("fill", d => {
+                    if (d.id === "AI") return "#1f77b4";
+                    else if (d.id === "Cybersecurity") return "#ff7f0e";
+                    else if (d.id === "Business Analysis") return "#2ca02c";
+                    else if (d.id === "Software Development") return "#9467bd";
+                    else if (d.id === "Design") return "#e377c2";
+                    else return "#ccc"; // For word nodes, color them gray or any other color
+                })
+                .on("mouseover", (event, d) => {
+                    tooltip.style("visibility", "visible")
+                        .text(`${d.id} - ${d.type === "cluster" ? "Cluster" : "Word"}`);
+                })
+                .on("mousemove", event => {
+                    tooltip.style("top", (event.pageY - 10) + "px")
+                        .style("left", (event.pageX + 10) + "px");
+                })
+                .on("mouseout", () => tooltip.style("visibility", "hidden"));
+
+            node.append("text")
+                .attr("x", 14)
+                .attr("y", 5)
+                .text(d => d.id)
+                .attr("stroke", "#000000")
+                .attr("fill", "#000000")
+                .attr("font-size", d => d.type === "category" ? "36px" : "22px")
+                .attr("class", d => d.id === "AI" || d.id === "Cybersecurity" || d.id === "Business Analysis" || d.id === "Software Development" || d.id === "Design" ? "cluster-text" : "word-text");
+
+            simulationCluster.on("tick", () => {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+
+                node.attr("transform", d => {
+                    // Clamp the node positions to ensure they stay within the SVG bounds
+                    d.x = Math.max(20, Math.min(width - 20, d.x));  // Clamp x between 20 and width-20
+                    d.y = Math.max(20, Math.min(800 - 20, d.y));  // Clamp y between 20 and height-20
+                    return `translate(${d.x},${d.y})`;
+                });
+            });
+
+            function drag(simulationCluster) {
+                function dragstarted(event, d) {
+                    if (!event.active) simulationCluster.alphaTarget(0.3).restart();
+                    d.fx = d.x;
+                    d.fy = d.y;
+                }
+
+                function dragged(event, d) {
+                    d.fx = event.x;
+                    d.fy = event.y;
+                }
+
+                function dragended(event, d) {
+                    if (!event.active) simulationCluster.alphaTarget(0);
+                    d.fx = null;
+                    d.fy = null;
+                }
+
+                return d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended);
+            }
+        }).catch(error => console.error("Error loading CSV file:", error));
+
+
+    </script>
+</body>
+</html>

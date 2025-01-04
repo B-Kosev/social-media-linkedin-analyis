@@ -1,0 +1,91 @@
+Category,Word,Count
+Engineer,engineer,32
+Engineer,senior,21
+Engineer,developer,18
+Engineer,engineering,13
+Engineer,internship,13
+Engineer,training,11
+Engineer,software,10
+Engineer,ai,9
+Engineer,data,9
+Engineer,and,7
+Developer,developer,18
+Developer,senior,12
+Developer,software,10
+Developer,engineer,8
+Developer,training,6
+Developer,and,4
+Developer,internship,4
+Developer,program,4
+Developer,full,4
+Developer,stack,4
+Data Scientist,data,38
+Data Scientist,internship,23
+Data Scientist,ai,18
+Data Scientist,science,12
+Data Scientist,analytics,11
+Data Scientist,training,9
+Data Scientist,engineer,7
+Data Scientist,intern,6
+Data Scientist,scientist,5
+Data Scientist,engineering,4
+Manager,manager,29
+Manager,lead,8
+Manager,delivery,4
+Manager,growth,4
+Manager,engineer,3
+Manager,product,3
+Manager,team,3
+Manager,software,2
+Manager,engineering,2
+Manager,data,2
+Designer,product,6
+Designer,designer,5
+Designer,senior,4
+Designer,manager,3
+Designer,uiux,3
+Designer,user,2
+Designer,experience,2
+Designer,sap,2
+Designer,growth,2
+Designer,ixp,1
+Analyst,data,38
+Analyst,internship,23
+Analyst,ai,17
+Analyst,science,12
+Analyst,analytics,11
+Analyst,business,9
+Analyst,training,9
+Analyst,and,8
+Analyst,analyst,8
+Analyst,engineer,6
+Consultant,consultant,12
+Consultant,senior,4
+Consultant,dynamics,4
+Consultant,sap,3
+Consultant,and,2
+Consultant,sales,2
+Consultant,finance,2
+Consultant,fo,2
+Consultant,supply,2
+Consultant,chain,2
+Architect,architect,3
+Architect,cloud,2
+Architect,senior,1
+Architect,software,1
+Architect,engineer,1
+Architect,for,1
+Architect,development,1
+Architect,oracle,1
+Architect,infrastructure,1
+Architect,application,1
+Specialist,specialist,21
+Specialist,consultant,12
+Specialist,and,10
+Specialist,support,5
+Specialist,with,5
+Specialist,expert,5
+Specialist,customer,4
+Specialist,senior,4
+Specialist,dynamics,4
+Specialist,french,3
